@@ -1,0 +1,261 @@
+---
+title: 'Tanner Houck and Garrett Crochet: Battle of the Aces'
+author: "Ivy Maynard"
+date: "04-11-2024"
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapesed: true
+    df_print: paged
+  theme: readable
+  family: Helvetica
+  pdf_document:
+    toc: true
+subtitle: A Data Wrangling Tutorial Through a 2024 Pitching Comparison
+---
+![Source: NESN.com](https://s47719.pcdn.co/wp-content/uploads/sites/5/2025/04/garrett-crochet.jpg){width=100%}
+
+## Introduction
+
+On paper, the 2024 Boston Red Sox weren't much to remember. They were a team that couldn't make the playoffs, plagued by injury, lack of spending, and a young farm system. Overall, the year was just another in a string of disappointing seasons. However, for some, 2024 was a breakout season.
+
+Left without a top starting pitcher, the Red Sox needed an ace, one that not many expected to find in an unproven starter from the middle of the rotation. In 2024, Tanner Houck stepped up to take the first spot, pitching some of the most efficient games in recent Red Sox history and making MLB headlines as some of the top pitching talent in the league.
+
+Despite Houck's efforts, the season didn't end the way the Red Sox wanted, and new GM, Craig Breslow, decided it was time to spend big over the offseason. Breslow made many notable free-agent acquisitions, but the most anticipated for Red Sox fans was Chicago White Sox ace, Garrett Crochet. Crochet is a 25-year-old starter who was almost immediately announced as the opening-day starter for the 2025 season, replacing both Bryan Bello and Tanner Houck in the rotation. 
+
+Of course, I am as excited as the next person that the Red Sox have started spending at the competitive level again, and the depth that Crochet brings to the team is sure to be very valuable. However, does the addition of Crochet mean that Houck's time in the spotlight is over?
+
+I am going to examine the two pitchers by comparing their 2024 seasons in the hopes of finding some answers to my question. I want to see if there are any noticeable characteristics to their pitching stats that could teach us more about what to expect from the two starters on the same team and even give us hints as to the most optimal way to use them throughout the season.
+
+In order to do this, I am going to wrangle some 2024 pitching data in R. Data wrangling is how we take large datasets and turn them into smaller, more workable datasets that contain key variables and information that we want to focus on. This cleaning process is the backbone of data analysis, so we are going to cover some of the basics to find out more about these two pitchers.
+
+
+## Gatherig Data
+
+To curate data on Houck and Crochet for 2024, I am using the baseballr package, which is a package that has functions that allow you to scrape data from various baseball statistics websites like Baseball Reference, Fangraphs, and MLB Stats. You can learn more about this package here: https://billpetti.github.io/baseballr/.
+
+The first step in gathering our data is installing any packages that we don't have and librarying into all the ones we need. Tidyverse is the package that contains all of the data-wrangling functions we'll be using in this exploration.
+```{r, eval = FALSE}
+install.package("baseballr")
+```
+
+```{r, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(dplyr)
+library(baseballr)
+```
+
+
+Eventually, the goal is to have a dataset with rows containing every start of the 2024 season for both players. In order to do that, we first need to find the unique player ID given to each player to use in the baseballr functions. Here, I used fg_pitch_leaders() which is a function that scrapes all the leading pitchers on FanGraphs from a select season. Dive deeper into FanGraphs here:https://www.fangraphs.com.
+```{r, message = FALSE}
+pitch_leaders = fg_pitch_leaders(startseason = "2024")
+pitch_leaders
+```
+The function creates a data table with all the pitching leaders of the 2024 season, along with all 400+ stats that Fangraphs reports. Instead of spending time searching through the table manually for the players we are looking for, we can use data wrangling to make it easier.
+
+
+## Filter
+
+A common wrangling function is filter() which allows you to keep rows based on specified values of columns. In this case, all I want to find is the row with Tanner Houck's stats. We use the pipe operator |> to carry down information and let the function know that we are manipulating the pitch_leaders dataset.
+```{r, message = FALSE}
+pitch_leaders |> 
+  filter(PlayerName == "Tanner Houck")
+```
+
+Now, because we want to look for both players, we could run the entire code twice for each player, or we can use the mathematical operators in R to find both of them at the same time. The | allows us to select rows with PlayerName of either Houck or Crochet.
+```{r, message = FALSE}
+pitch_leaders |> 
+  filter(PlayerName == "Tanner Houck" | PlayerName == "Garrett Crochet")
+```
+
+
+
+## Select
+
+What we were left off with after using filter() was helpful, but there are a lot of variables to sort through. Again, we can either look through the data manually, or save time by using a wrangling function. The select() function allows us to display a dataframe with only the columns of interest. Using the pipe operator, we can add on to our previous code and select only PlayerName, playerid, and team_name.
+```{r, message = FALSE}
+pitch_leaders |> 
+  filter(PlayerName == "Tanner Houck" | PlayerName == "Garrett Crochet") |> 
+  select(PlayerName, playerid, team_name)
+```
+Now that we have parsed through the data, we know that the player IDs for Houck and Crochet are 19879 and 27463. This will allow us to scrape data from FanGraphs about their starts for any season of choice using a baseballr function.
+
+
+### More Data Gathering
+
+The fg_pitcher_game_logs() function scrapes FanGraphs data from every pitching appearance of a certain player in a specified year. Below, I made two separate tables for Houck and Crochet containing evey start they made in 2024 with all of the related statistics using their player ID.
+```{r, message = FALSE}
+houck_2024 = fg_pitcher_game_logs(playerid = 19879, 2024)
+houck_2024
+
+crochet_2024 =  fg_pitcher_game_logs(playerid = 27463, 2024)
+crochet_2024
+```
+
+
+
+## Joins
+
+The last step in our data-gathering process is taking the two datasets for Houck and Crochet and combining them into one so that we can compare and analyze them together. I did this by using a join function. Joins allow you to combine multiple datasets and often use keys to combine variables and match up common observations. In this case, I used full_join(), which takes both of my datasets and combines them into one. We are left with a new dataset that has the same variables but contains all starts for both pitchers. Now we have our full dataset and we are ready to explore!
+```{r, message = FALSE}
+game_logs2024 <- full_join(houck_2024, crochet_2024)
+game_logs2024
+```
+
+
+
+## Exploring Data Through Wrangling
+
+Now that we have our final dataset, we can examine it more closely to see if there's anything that hints at differences in pitching performance. First, I want to limit the amount of variables in my data to show only the ones I plan on focusing on. I did this by using select(). I selected variables to show they player's name, the date of the game, whether the game was at home or away, earned run average, and innings pitched. Our new dataframe is much more manageable.
+```{r, message = FALSE}
+game_logs_small <- game_logs2024 |> 
+  select(PlayerName, Date, HomeAway, ERA, IP)
+
+game_logs_small
+```
+
+
+
+## Arrange
+
+Next, I want to see if there are any differences in the amount of innings each pitcher pitches. There are many ways to look at this, so let's start by putting all games in order of IP from most to least. We can use the arrange() function to change the order of the rows based on the value of the columns. The desc() function puts the values of a given column in descending order. I used this to arrange IP in descending order. Let's see if there are any notable features.
+```{r, message = FALSE}
+game_logs_small |> 
+  arrange(desc(IP))
+```
+One thing that stands out is how there was only one game where a pitcher pitched a full 9 innings, which was Tanner Houck on April 27th. Another notable point is the game on August 27th where Garrett Crochet pitched 0 innings. This point would need further examination because it could be due to injury, an abnormal situation in the game, or a data entry error. We also can see that 6 IP is common for both pitchers. Arrange is a good way to explore the data, but we need to go further to really compare the two players.
+
+
+## Groups
+
+The group_by() function allows us to sort our data into meaningful groups which can help us with analysis. Here I grouped our data by PlayerName, which creates one group with all of Houck's starts and one group with all of Crochet's. This also shows how the pipe works with multiple functions. You can add on as many functions as you'd like, but for the purpose of clarity and replication, sometimes it's best to create a new datatable with your manipulated data.
+```{r, message = FALSE}
+game_logs_group <- game_logs_small |> 
+  arrange(desc(IP)) |> 
+  group_by(PlayerName)
+
+game_logs_group
+```
+While this data may not look any different, if you look closely at the tibble, it tells you that there are two PlayerName groups in the data. 
+
+
+## Sumarize
+
+Summarize is a powerful function that lets us calculate summary statistics for each group. We can find the count, sum, mean, and much more for any variable in our table with the function. Here, I want to find the average innings pitched for each pitcher in 2024 to see if there are any differences in their longevity.
+
+To determine average innings pitches, we need to know how many starts each player made throughout the season. We can use summarize along with the count function, n(), to determine how many rows are in each group. One row represents one start made by a pitcher.
+```{r, message = FALSE}
+game_logs_group |> 
+  summarize(
+    starts = n()
+  )
+```
+
+Next, we need to see how many innings each player pitched during the entire season. We can add on another summarized variable called total_IP which uses the sum() function to add up all the IP values for each player. Here we can see that Tanner Houck pitched more innings that Garrett Crochet through 2 less starts.
+```{r, message = FALSE}
+game_logs_group |> 
+  summarize(
+    starts = n(),
+    total_IP = sum(IP)
+  )
+```
+
+Lastly, to find the average innings pitched for each player in 2024, we can create a new summarize variable called avg_IP which divides the total innings pitched by the total starts. We can see that Houck pitched roughly 5.8 innings per game on average while Crochet pitched roughly 4.5.
+```{r, message = FALSE}
+game_logs_group |> 
+  summarize(
+    starts = n(),
+    total_IP = sum(IP),
+    avg_IP = total_IP/starts
+  )
+```
+
+
+
+## Group By Multiple Variables
+
+The group_by() function becomes even more powerful when you make groups of multiple variables. This function creates groups for every combination of the given variables. I grouped my data by PlayerName and HomeAway.
+```{r, message = FALSE}
+game_logs_mult <- game_logs_small |> 
+  group_by(PlayerName, HomeAway)
+
+game_logs_mult
+```
+Again, our data doesn't change, but there are now 4 groups: Tanner Houck's home games, Tanner Houck's away games, Garrett Crochet's home games, and Garrett Crochet's away games. This allows us to find statistics for the pitchers at both home and away games.
+
+
+## Summarize Multiple Variables
+
+When we use summarize on groups of multiple variables, it works the same way by reducing each group to one specified summary statistic. This time, we will summarize all four groups instead of just two to see pitching performance at home and away.
+
+In order to see how Houck and Crochet perform at home vs away, I want to find their season ERA at home and away. ERA stands for Earned Run Average. This statistic tells you how many runs a pitcher would have allowed over the course of a full 9 inning game. This is the most widely used pitching statistic, and it's a basic representation of pitching performance. 
+
+I calculated that by counting the number of entries in each group. If we remember how group_by() works with multiple variables, we know that the n() function counts how many starts each player made at home and how many starts they made away. Then, I can calculate their home and away ERAs by finding the average.
+```{r, message = FALSE}
+game_logs_HA <- game_logs_mult |> 
+  summarize(
+    starts = n(),
+    ERA = sum(ERA)/starts
+  )
+
+game_logs_HA
+```
+As you can see, Tanner Houck had a lower ERA away than he did at home while Garrett Crochet had a higher ERA away than he did at home.
+
+
+## Visualize
+
+We can also use ggplot2 to visualize some of our findings. ggplot2 is a core package included in tidyverse, and it lets us graphically explore our data.
+
+
+### Scatterplot
+
+Going back to our unsummarized dataframe, we can use scatterplots to observe any trends or unusual features in our data. Here, I plotted IP against ERA. Each point represents a start and they are color-coordinated based on pitcher. I also included the linear regression line to help us better visualize trends.
+```{r, message = FALSE}
+game_logs_small |> 
+  ggplot(aes(x = IP, y = ERA, color = PlayerName)) +
+  geom_point() +
+  geom_smooth(method = "lm", level = .5) +
+  labs(
+    title = "Innings Pitched vs ERA",
+    subtitle = "Tanner Houck and Garrett Crochet in 2024",
+    x = "Innings Pitched",
+    y = "ERA", 
+    color = "Player Name"
+  )
+```
+
+This scatterplot shows us how ERA tends to be lower when IP is higher, regardless of pitcher. This coincides with typical baseball strategy: when a pitcher is pitching well, keep them in. When they're not, take them out early. This plot shows a negative sloping and moderately strong relationship between innings pitched and earned run average with two possible outliers. One possible outlier is Houck's shutout, and another is a start where Crochet pitched 0 innings.
+
+
+### Bar Plot
+
+Below is a graphical representation of what we discovered when summarizing by PlayerName and HomeAway. Here we can see how the player's performance differed in the two situations through the segmented bar graph. Notice how Tanner Houck's ERA was lower than Crochet's for both home and away games.
+```{r}
+game_logs_HA |> 
+  ggplot(aes(x = PlayerName, y = ERA, fill = HomeAway)) +
+  geom_bar(
+    position = "dodge", 
+    stat = "identity"
+    ) +
+  labs(
+    title = "ERA at Home Games vs Away Games",
+    subtitle = "Tanner Houck and Garrett Crochet in 2024",
+    x = "Player Name",
+    y = "ERA", 
+    fill = "Game Type"
+  ) 
+```
+
+
+
+## Conclusion
+
+Now that we've completed our data wrangling and our exploratory data analysis, we can begin to make connections between our initial question and our research.
+
+Our summarizing showed us that in 2024, Tanner Houck pitched more innings per start on average than Garrett Crochet. It also showed us that Crochet pitched better at away parks and Houck pitched better at home. Overall, Houck had a better season ERA and a better ERA both home and away than Crochet.
+
+This information could be helpful in terms of in-game strategy. If we know that Houck tends to pitch longer in the game, that could help decide which relief pitchers should follow him. Perhaps a few relief pitchers who pitch only one or two innings with high efficiency should be rested and ready to make mound appearances after a Houck start, while a reliever who can pitch around 3 innings and a strong closer should be ready to follow Crochet. It also might be important for a coach to find out why each pitcher struggles more at home or away because there could be small changes in routine or training that would help mitigate those disparities. Finally, based on their ERAs for 2024, there might even be a reason to keep Houck as the first pitcher in the rotation because his performance in 2024 was strong, if not stronger than Crochet's.
+
+Of course, it's important to note that we have only explored the data. We haven't made any statistical models to prove the significance of these claims, and we are only making observations based on the past rather than predicting the future. Data wrangling and visualization are great ways to get insights into the data at hand, but what they really do is open up a world of analytical possibilities that can help teams make decisions, improve performance, and, hopefully, win titles.
